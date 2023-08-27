@@ -4,7 +4,7 @@ interface SqidsOptions {
   blocklist?: Set<string>
 }
 
-export const defaultOptions = {
+export let defaultOptions = {
   alphabet: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
   minLength: 0,
   blocklist: new Set<string>([
@@ -577,12 +577,12 @@ export default class Sqids {
   private blocklist: Set<string>
 
   constructor(options?: SqidsOptions) {
-    const alphabet = options?.alphabet ?? defaultOptions.alphabet
-    const minLength = options?.minLength ?? defaultOptions.minLength
-    const blocklist =
+    let alphabet = options?.alphabet ?? defaultOptions.alphabet
+    let minLength = options?.minLength ?? defaultOptions.minLength
+    let blocklist =
       options?.blocklist ?? new Set<string>(defaultOptions.blocklist)
 
-    const minAlphabetLength = 5
+    let minAlphabetLength = 5
     if (alphabet.length < minAlphabetLength) {
       throw new Error('Alphabet length must be at least 5')
     }
@@ -597,18 +597,17 @@ export default class Sqids {
       minLength > alphabet.length
     ) {
       throw new TypeError(
-        `Minimum length has to be between ${this.minValue()} and ${
-          alphabet.length
+        `Minimum length has to be between ${this.minValue()} and ${alphabet.length
         }`,
       )
     }
 
-    const filteredBlocklist = new Set<string>()
-    const alphabetChars = alphabet.split('')
-    for (const word of blocklist) {
+    let filteredBlocklist = new Set<string>()
+    let alphabetChars = alphabet.split('')
+    for (let word of blocklist) {
       if (word.length >= 3) {
-        const wordChars = word.split('')
-        const intersection = wordChars.filter((c) => alphabetChars.includes(c))
+        let wordChars = word.split('')
+        let intersection = wordChars.filter((c) => alphabetChars.includes(c))
         if (intersection.length === wordChars.length) {
           filteredBlocklist.add(word.toLowerCase())
         }
@@ -620,15 +619,21 @@ export default class Sqids {
     this.blocklist = filteredBlocklist
   }
 
-  encode(numbers: number[]): string {
+  encode(numbers: Array<number | bigint>): string {
     if (numbers.length === 0) {
       return ''
     }
 
-    const inRangeNumbers = numbers.filter(
-      (n) => n >= this.minValue() && n <= this.maxValue(),
-    )
-    if (inRangeNumbers.length !== numbers.length) {
+    let outOfRange = false;
+    for (let n of numbers) {
+      if (n >= this.minValue() && n <= this.maxValue()) continue;
+      else {
+        outOfRange = true;
+        break;
+      }
+    }
+
+    if (outOfRange) {
       throw new Error(
         `Encoding supports numbers between ${this.minValue()} and ${this.maxValue()}`,
       )
@@ -637,40 +642,40 @@ export default class Sqids {
     return this.encodeNumbers(numbers, false)
   }
 
-  decode(id: string): number[] {
-    const ret: number[] = []
+  decode(id: string): Array<number | bigint> {
+    let ret: number[] = []
 
     if (id === '') {
       return ret
     }
 
-    const alphabetChars = this.alphabet.split('')
-    for (const c of id.split('')) {
+    let alphabetChars = this.alphabet.split('')
+    for (let c of id.split('')) {
       if (!alphabetChars.includes(c)) {
         return ret
       }
     }
 
-    const prefix = id.charAt(0)
-    const offset = this.alphabet.indexOf(prefix)
+    let prefix = id.charAt(0)
+    let offset = this.alphabet.indexOf(prefix)
     let alphabet = this.alphabet.slice(offset) + this.alphabet.slice(0, offset)
-    const partition = alphabet.charAt(1)
+    let partition = alphabet.charAt(1)
     alphabet = alphabet.slice(2)
     let slicedId = id.slice(1)
 
-    const partitionIndex = slicedId.indexOf(partition)
+    let partitionIndex = slicedId.indexOf(partition)
     if (partitionIndex > 0 && partitionIndex < slicedId.length - 1) {
       slicedId = slicedId.slice(partitionIndex + 1)
       alphabet = this.shuffle(alphabet)
     }
 
     while (slicedId.length > 0) {
-      const separator = alphabet.slice(-1)
+      let separator = alphabet.slice(-1)
 
-      const chunks = slicedId.split(separator)
+      let chunks = slicedId.split(separator)
       if (chunks.length > 0) {
-        const alphabetWithoutSeparator = alphabet.slice(0, -1)
-        for (const c of chunks[0]!) {
+        let alphabetWithoutSeparator = alphabet.slice(0, -1)
+        for (let c of chunks[0]!) {
           if (!alphabetWithoutSeparator.includes(c)) {
             return []
           }
@@ -696,32 +701,32 @@ export default class Sqids {
     return Number.MAX_SAFE_INTEGER
   }
 
-  private encodeNumbers(numbers: number[], partitioned = false): string {
-    const offset =
-      numbers.reduce(
-        (a, v, i) =>
-          this.alphabet[v % this.alphabet.length]!.codePointAt(0)! + i + a,
-        numbers.length,
-      ) % this.alphabet.length
+  private encodeNumbers(numbers: Array<number | bigint>, partitioned = false): string {
+    let offset = this.alphabet.length;
+    for (let i = 0, len = this.alphabet.length; i < len; i++) {
+      let v = numbers[i];
+      if (typeof v === "number") offset += this.alphabet[v % len]!.codePointAt(0)! + 1
+      else if (typeof v === "bigint") offset += this.alphabet[Number(v % BigInt(len))]!.codePointAt(0)! + i;
+    }
 
     let alphabet = this.alphabet.slice(offset) + this.alphabet.slice(0, offset)
 
-    const prefix = alphabet.charAt(0)
+    let prefix = alphabet.charAt(0)
 
-    const partition = alphabet.charAt(1)
+    let partition = alphabet.charAt(1)
 
     alphabet = alphabet.slice(2)
 
-    const ret = [prefix]
+    let ret = [prefix]
 
     for (let i = 0; i !== numbers.length; i++) {
-      const num = numbers[i]!
+      let num = numbers[i]!
 
-      const alphabetWithoutSeparator = alphabet.slice(0, -1)
+      let alphabetWithoutSeparator = alphabet.slice(0, -1)
       ret.push(this.toId(num, alphabetWithoutSeparator))
 
       if (i < numbers.length - 1) {
-        const separator = alphabet.slice(-1)
+        let separator = alphabet.slice(-1)
 
         if (partitioned && i === 0) {
           ret.push(partition)
@@ -737,7 +742,7 @@ export default class Sqids {
 
     if (this.minLength > id.length) {
       if (!partitioned) {
-        const newNumbers = [0, ...numbers]
+        let newNumbers = [0, ...numbers]
         id = this.encodeNumbers(newNumbers, true)
       }
 
@@ -753,10 +758,12 @@ export default class Sqids {
       let newNumbers = numbers
 
       if (partitioned) {
-        if (numbers[0]! + 1 > this.maxValue()) {
+        let first = numbers[0]!
+        let n = typeof first === "bigint" ? BigInt(first) : first;
+        if (n > this.maxValue()) {
           throw new Error('Ran out of range checking against the blocklist')
         } else {
-          newNumbers[0] += 1
+          newNumbers[0] = typeof first === "bigint" ? first + BigInt(1) : first + 1
         }
       } else {
         newNumbers = [0, ...numbers]
@@ -769,41 +776,47 @@ export default class Sqids {
   }
 
   private shuffle(alphabet: string): string {
-    const chars = alphabet.split('')
+    let chars = alphabet.split('')
 
     for (let i = 0, j = chars.length - 1; j > 0; i++, j--) {
-      const r =
+      let r =
         (i * j + chars[i]!.codePointAt(0)! + chars[j]!.codePointAt(0)!) %
         chars.length
-      ;[chars[i], chars[r]] = [chars[r]!, chars[i]!]
+        ;[chars[i], chars[r]] = [chars[r]!, chars[i]!]
     }
 
     return chars.join('')
   }
 
-  private toId(num: number, alphabet: string): string {
-    const id = []
-    const chars = alphabet.split('')
+  private toId(num: number | bigint, alphabet: string): string {
+    let id = []
+    let chars = alphabet.split('')
+    let len = chars.length;
 
     let result = num
 
     do {
-      id.unshift(chars[result % chars.length])
-      result = Math.floor(result / chars.length)
+      if (typeof result === "number") {
+        id.unshift(chars[result % len])
+        result = Math.floor(result / len)
+      } else {
+        id.unshift(chars[Number(result % BigInt(len))]);
+        result = result / BigInt(len);
+      }
     } while (result > 0)
 
     return id.join('')
   }
 
   private toNumber(id: string, alphabet: string): number {
-    const chars = alphabet.split('')
+    let chars = alphabet.split('')
     return id.split('').reduce((a, v) => a * chars.length + chars.indexOf(v), 0)
   }
 
   private isBlockedId(id: string): boolean {
-    const lowercaseId = id.toLowerCase()
+    let lowercaseId = id.toLowerCase()
 
-    for (const word of this.blocklist) {
+    for (let word of this.blocklist) {
       if (word.length <= lowercaseId.length) {
         if (lowercaseId.length <= 3 || word.length <= 3) {
           if (lowercaseId === word) {
